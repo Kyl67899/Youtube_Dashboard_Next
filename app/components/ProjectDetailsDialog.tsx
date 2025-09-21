@@ -1,14 +1,15 @@
+"use client"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "../component/ui/dialog";
-import { Badge } from "../component/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "../component/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "../component/ui/card";
-import { Progress } from "../component/ui/progress";
-import { Separator } from "../component/ui/separator";
+} from "../../component/ui/dialog";
+import { Badge } from "../../component/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../../component/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/card";
+import { Progress } from "../../component/ui/progress";
+import { Separator } from "../../component/ui/separator";
 import { 
   Calendar, 
   DollarSign, 

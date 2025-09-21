@@ -1,6 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../component/ui/card";
-import { Badge } from "../component/ui/badge";
-import { Button } from "../component/ui/button";
+"use client"
+import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/card";
+import { Badge } from "../../component/ui/badge";
+import { Button } from "../../component/ui/button";
 import {
   Table,
   TableBody,
@@ -8,15 +9,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../component/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "../component/ui/avatar";
+} from "../../component/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "../../component/ui/avatar";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../component/ui/dropdown-menu";
+} from "../../component/ui/dropdown-menu";
 
 const entries = [
   {

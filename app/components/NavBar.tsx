@@ -1,23 +1,25 @@
+"use client"
 import { useState } from "react";
 import { Search, Plus, Bell, User, Menu, X } from "lucide-react";
-import { Button } from "../component/ui/button";
-import { Input } from "../component/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "../component/ui/avatar";
+import { Button } from "../../component/ui/button";
+import { Input } from "../../component/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "../../component/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../component/ui/dropdown-menu";
+} from "../../component/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "../component/ui/sheet";
+} from "../../component/ui/sheet";
 import { ThemeToggle } from "./ThemeToggle";
+import Link from "next/link";
 
 export function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -93,6 +95,7 @@ export function NavBar() {
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
+            
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
@@ -135,18 +138,18 @@ export function NavBar() {
 
                 {/* Mobile Navigation */}
                 <nav className="space-y-4">
-                  <a href="#" className="block text-foreground hover:text-primary transition-colors">
+                  <Link href="#" className="block text-foreground hover:text-primary transition-colors">
                     Projects
-                  </a>
-                  <a href="#" className="block text-foreground hover:text-primary transition-colors">
+                  </Link>
+                  <Link href="#" className="block text-foreground hover:text-primary transition-colors">
                     Analytics
-                  </a>
-                  <a href="#" className="block text-foreground hover:text-primary transition-colors">
+                  </Link>
+                  <Link href="#" className="block text-foreground hover:text-primary transition-colors">
                     Reports
-                  </a>
-                  <a href="#" className="block text-foreground hover:text-primary transition-colors">
+                  </Link>
+                  <Link href="#" className="block text-foreground hover:text-primary transition-colors">
                     Team
-                  </a>
+                  </Link>
                 </nav>
 
                 {/* Mobile Actions */}

@@ -1,3 +1,4 @@
+"use client"
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle, AlertCircle, Clock, TrendingUp } from "lucide-react";

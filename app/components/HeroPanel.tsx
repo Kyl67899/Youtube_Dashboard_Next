@@ -1,5 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../component/ui/card";
-import { Badge } from "../component/ui/badge";
+"use client"
+
+import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/card";
+import { Badge } from "../../component/ui/badge";
 import { TrendingUp, Users, Target, Award } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 

@@ -1,3 +1,5 @@
+'use client'
+
 import { ThemeProvider } from "./components/ThemeProvider";
 import { NavBar } from "./components/NavBar";
 import { HeroPanel } from "./components/HeroPanel";
@@ -5,7 +7,7 @@ import { SummaryCards } from "./components/SummaryCards";
 import { EnhancedEntriesTable } from "./components/EnhancedEntriesTable";
 import { NotificationSystem } from "./components/NotificationSystem";
 import { useRealTimeData } from "./components/RealTimeUpdates";
-import { Toaster } from "./component/ui/sonner";
+import { Toaster } from "../component/ui/sonner";
 
 export default function Home() {
   const { entries, lastUpdated, updateData, updateProject } =
@@ -34,7 +36,7 @@ export default function Home() {
         </main>
 
         <NotificationSystem onDataUpdate={updateData} />
-        <Toaster />
+        {/* <Toaster /> */}
       </div>
     </ThemeProvider>
   );

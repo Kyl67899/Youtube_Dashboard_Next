@@ -1,15 +1,16 @@
+"use client"
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../component/ui/card";
-import { Badge } from "../component/ui/badge";
-import { Button } from "../component/ui/button";
-import { Input } from "../component/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/card";
+import { Badge } from "../../component/ui/badge";
+import { Button } from "../../component/ui/button";
+import { Input } from "../../component/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../component/ui/select";
+} from "../../component/ui/select";
 import {
   Table,
   TableBody,
@@ -17,10 +18,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../component/ui/table";
-import { ScrollArea } from "../component/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "../component/ui/avatar";
-import { Progress } from "../component/ui/progress";
+} from "../../component/ui/table";
+import { ScrollArea } from "../../component/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "../../component/ui/avatar";
+import { Progress } from "../../component/ui/progress";
 import { 
   MoreHorizontal, 
   Eye, 
@@ -40,7 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../component/ui/dropdown-menu";
+} from "../../component/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,7 +51,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../component/ui/alert-dialog";
+} from "../../component/ui/alert-dialog";
 import { ProjectDetailsDialog } from "./ProjectDetailsDialog";
 import { ProjectEditDialog } from "./ProjectEditDialog";
 import { toast } from "sonner";

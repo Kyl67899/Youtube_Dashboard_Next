@@ -1,3 +1,4 @@
+"use client"
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -5,19 +6,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "../component/ui/dialog";
-import { Button } from "../component/ui/button";
-import { Input } from "../component/ui/input";
-import { Label } from "../component/ui/label";
-import { Textarea } from "../component/ui/textarea";
+} from "../../component/ui/dialog";
+import { Button } from "../../component/ui/button";
+import { Input } from "../../component/ui/input";
+import { Label } from "../../component/ui/label";
+import { Textarea } from "../../component/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../component/ui/select";
-import { Slider } from "../component/ui/slider";
+} from "../../component/ui/select";
+import { Slider } from "../../component/ui/slider";
 import { toast } from "sonner";
 import { Save, X } from "lucide-react";
 

@@ -1,5 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../component/ui/card";
-import { Progress } from "../component/ui/progress";
+"use client"
+import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/card";
+import { Progress } from "../../component/ui/progress";
 import { ArrowUpRight, ArrowDownRight, Clock, CheckCircle, AlertCircle } from "lucide-react";
 
 export function SummaryCards() {
