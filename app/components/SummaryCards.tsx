@@ -1,104 +1,146 @@
 "use client"
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/card";
 import { Progress } from "../../component/ui/progress";
 import { ArrowUpRight, ArrowDownRight, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { ProjectProvider, useProjects } from "../context/projectContext";
+import { useMemo } from "react";
 
 export function SummaryCards() {
+  const { projects = [] } = useProjects() ?? {};
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay() + 1); // Monday
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  // 🟠 Pending Tasks
+  const pendingTasks = projects.filter(p => p.status === "Pending").length;
+
+  // 🟠 This Week's Pending Tasks
+  const thisWeekPendingTasks = projects.filter(p => {
+    const created = new Date(p.createdAt);
+    return p.status === "Pending" && created >= weekStart;
+  }).length;
+
+  // 🔵 Team Productivity (avg progress of active projects)
+  const activeProjects = projects.filter(p => p.status !== "Completed");
+  const teamProductivity = activeProjects.length
+    ? Math.round(activeProjects.reduce((sum, p) => sum + p.progress, 0) / activeProjects.length)
+    : 0;
+
+  // 💰 Monthly Revenue
+  const monthlyRevenue = projects.filter(p => {
+    const created = new Date(p.createdAt);
+    return created >= monthStart;
+  }).reduce((sum, p) => {
+    const num = parseFloat(p.budget.replace(/[^0-9.]/g, ""));
+    return sum + (isNaN(num) ? 0 : num);
+  }, 0);
+
+  // 💰 Monthly Goal
+  const monthlyGoal = 15000;
+  const monthlyProgress = Math.round((monthlyRevenue / monthlyGoal) * 100);
+
+  // 📈 Revenue Change from Last Month
+  const lastMonthRevenue = projects.filter(p => {
+    const created = new Date(p.createdAt);
+    return created >= lastMonthStart && created <= lastMonthEnd;
+  }).reduce((sum, p) => {
+    const num = parseFloat(p.budget.replace(/[^0-9.]/g, ""));
+    return sum + (isNaN(num) ? 0 : num);
+  }, 0);
+
+  const revenueDelta = monthlyRevenue - lastMonthRevenue;
+
+  // 🚀 Launching This Month
+  const launchingThisMonth = projects.filter(p => {
+    const launch = new Date(p.launchDate);
+    return launch >= monthStart && launch <= now;
+  }).length;
+
+  // 🆕 New Projects This Month
+  const newProjectsThisMonth = projects.filter(p => new Date(p.createdAt) >= monthStart).length;
+
+  // 😊 Client Satisfaction
+  const ratedProjects = projects.filter(p => typeof p.clientRating === "number");
+  const clientSatisfaction = ratedProjects.length
+    ? (ratedProjects.reduce((sum, p) => sum + p.clientRating, 0) / ratedProjects.length).toFixed(1)
+    : "N/A";
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">This Week&apos;s Progress</CardTitle>
-          <CheckCircle className="h-4 w-4 text-green-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold mb-2">87%</div>
-          <Progress value={87} className="mb-2" />
-          <div className="flex items-center text-xs text-muted-foreground">
-            <ArrowUpRight className="h-3 w-3 text-green-600 mr-1" />
-            <span className="text-green-600">+5%</span> from last week
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
+        <CardHeader>
+          <CardTitle>Pending Tasks</CardTitle>
           <Clock className="h-4 w-4 text-orange-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold mb-2">23</div>
-          <p className="text-xs text-muted-foreground mb-2">
-            Due this week: 8 tasks
-          </p>
-          <div className="flex items-center text-xs text-muted-foreground">
-            <ArrowDownRight className="h-3 w-3 text-red-600 mr-1" />
-            <span className="text-red-600">-2</span> from yesterday
-          </div>
+          <div className="text-2xl font-bold mb-2">{pendingTasks}</div>
+          <p className="text-xs text-muted-foreground">This week: {thisWeekPendingTasks}</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Team Productivity</CardTitle>
+        <CardHeader>
+          <CardTitle>Team Productivity</CardTitle>
           <AlertCircle className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold mb-2">92%</div>
-          <Progress value={92} className="mb-2" />
-          <div className="flex items-center text-xs text-muted-foreground">
-            <ArrowUpRight className="h-3 w-3 text-green-600 mr-1" />
-            <span className="text-green-600">+3%</span> efficiency gain
-          </div>
+          <div className="text-2xl font-bold mb-2">{teamProductivity}%</div>
+          <Progress value={teamProductivity} />
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+        <CardHeader>
+          <CardTitle>Monthly Revenue</CardTitle>
           <ArrowUpRight className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold mb-2">$12,847</div>
-          <p className="text-xs text-muted-foreground mb-2">
-            Target: $15,000
+          <div className="text-2xl font-bold mb-2">${monthlyRevenue.toLocaleString()}</div>
+          <p className="text-xs text-muted-foreground">Target: ${monthlyGoal.toLocaleString()}</p>
+          <Progress value={monthlyProgress} />
+          <p className="text-xs text-muted-foreground">
+            {revenueDelta >= 0 ? "+" : "-"}${Math.abs(revenueDelta).toLocaleString()} from last month
           </p>
-          <Progress value={85.6} className="mb-2" />
-          <div className="flex items-center text-xs text-muted-foreground">
-            <span className="text-green-600">85.6%</span> of monthly goal
-          </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+        <CardHeader>
+          <CardTitle>Active Projects</CardTitle>
           <CheckCircle className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold mb-2">14</div>
-          <p className="text-xs text-muted-foreground mb-2">
-            2 launching this month
-          </p>
-          <div className="flex items-center text-xs text-muted-foreground">
-            <ArrowUpRight className="h-3 w-3 text-green-600 mr-1" />
-            <span className="text-green-600">+2</span> new projects
-          </div>
+          <div className="text-2xl font-bold mb-2">{activeProjects.length}</div>
+          <p className="text-xs text-muted-foreground">{launchingThisMonth} launching this month</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Client Satisfaction</CardTitle>
+        <CardHeader>
+          <CardTitle>New Projects</CardTitle>
           <ArrowUpRight className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold mb-2">4.8/5</div>
-          <Progress value={96} className="mb-2" />
-          <div className="flex items-center text-xs text-muted-foreground">
-            <ArrowUpRight className="h-3 w-3 text-green-600 mr-1" />
-            <span className="text-green-600">+0.2</span> from last quarter
-          </div>
+          <div className="text-2xl font-bold mb-2">{newProjectsThisMonth}</div>
+          <p className="text-xs text-muted-foreground">Added this month</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Client Satisfaction</CardTitle>
+          <ArrowUpRight className="h-4 w-4 text-green-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold mb-2">{clientSatisfaction}/5</div>
+          <Progress value={parseFloat(clientSatisfaction) * 20} />
+          <p className="text-xs text-muted-foreground">Based on recent ratings</p>
         </CardContent>
       </Card>
     </div>

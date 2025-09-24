@@ -100,5 +100,5 @@ export function NotificationSystem({ onDataUpdate }: NotificationSystemProps) {
     }
   };
 
-  return null; // This component doesn't render anything visible
+  return null
 }

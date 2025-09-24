@@ -1,4 +1,5 @@
 "use client"
+
 import { useState } from "react";
 import { Search, Plus, Bell, User, Menu, X } from "lucide-react";
 import { Button } from "../../component/ui/button";
@@ -20,9 +21,16 @@ import {
 } from "../../component/ui/sheet";
 import { ThemeToggle } from "./ThemeToggle";
 import Link from "next/link";
+import { NewProjectDialog } from "./NewProjectDialog";
+import { Project, initialEntries } from "../data/initialEntries";
 
 export function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [entries, setEntries] = useState<typeof Project[]>(initialEntries);
+
+  const handleAddProject = (newProject: typeof Project) => {
+    setEntries((prev) => [...prev, newProject]);
+  };
 
   return (
     <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -35,18 +43,18 @@ export function NavBar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-6">
-          <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
             Projects
-          </a>
-          <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+          </Link>
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
             Analytics
-          </a>
-          <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+          </Link>
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
             Reports
-          </a>
-          <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+          </Link>
+          <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
             Team
-          </a>
+          </Link>
         </nav>
 
         {/* Desktop Search, Actions, and User Menu */}
@@ -68,8 +76,8 @@ export function NavBar() {
           {/* New Project Button */}
           <Button className="hidden sm:flex">
             <Plus className="h-4 w-4 mr-2" />
-            <span className="hidden lg:inline">New Project</span>
-            <span className="lg:hidden">New</span>
+            <NewProjectDialog onAdd={handleAddProject} />
+            {/* <span className="lg:hidden">New</span> */}
           </Button>
 
           {/* New Project Icon for small screens */}
@@ -95,7 +103,7 @@ export function NavBar() {
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            
+
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
@@ -125,7 +133,7 @@ export function NavBar() {
                   Dashboard
                 </SheetTitle>
               </SheetHeader>
-              
+
               <div className="mt-6 space-y-6">
                 {/* Mobile Search */}
                 <div className="relative">
@@ -156,9 +164,9 @@ export function NavBar() {
                 <div className="space-y-4 pt-4 border-t">
                   <Button className="w-full justify-start">
                     <Plus className="h-4 w-4 mr-2" />
-                    New Project
+                    <NewProjectDialog onAdd={handleAddProject} />
                   </Button>
-                  
+
                   <Button variant="ghost" className="w-full justify-start">
                     <Bell className="h-4 w-4 mr-2" />
                     Notifications

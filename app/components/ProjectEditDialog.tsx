@@ -1,5 +1,4 @@
 "use client"
-import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,7 @@ import {
 import { Slider } from "../../component/ui/slider";
 import { toast } from "sonner";
 import { Save, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ProjectEntry {
   id: string;
@@ -45,7 +45,13 @@ interface ProjectEditDialogProps {
   onSave: (updatedProject: ProjectEntry) => void;
 }
 
-const teamMembers = [
+type TeamMember = {
+  name: string;
+  email: string;
+  avatar: string;
+};
+
+const initialTeam = [
   { name: "Sarah Johnson", avatar: "SJ", email: "sarah@company.com" },
   { name: "Mike Chen", avatar: "MC", email: "mike@company.com" },
   { name: "Emily Davis", avatar: "ED", email: "emily@company.com" },
@@ -55,14 +61,45 @@ const teamMembers = [
   { name: "Maria Garcia", avatar: "MG", email: "maria@company.com" },
 ];
 
-export function ProjectEditDialog({ 
-  project, 
-  open, 
-  onOpenChange, 
-  onSave 
+const TEAM_STORAGE_KEY = "project-team-members";
+
+export function ProjectEditDialog({
+  project,
+  open,
+  onOpenChange,
+  onSave
 }: ProjectEditDialogProps) {
   const [formData, setFormData] = useState<ProjectEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [teamMembers, setTeamMembers] = useState<typeof initialTeam[]>([]);
+  const [newMember, setNewMember] = useState({ name: "", email: "", avatar: "" });
+  const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("project-description");
+    if (stored) setDescription(stored);
+  }, []);  
+
+  useEffect(() => {
+    const syncTeam = (e: StorageEvent) => {
+      if (e.key === TEAM_STORAGE_KEY && e.newValue) {
+        setTeamMembers(JSON.parse(e.newValue));
+      }
+    };
+    window.addEventListener("storage", syncTeam);
+    return () => window.removeEventListener("storage", syncTeam);
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(TEAM_STORAGE_KEY);
+    if (stored) {
+      setTeamMembers(JSON.parse(stored));
+    } else {
+      setTeamMembers(initialTeam);
+      localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(initialTeam));
+    }
+  }, []);
 
   useEffect(() => {
     if (project && open) {
@@ -70,16 +107,59 @@ export function ProjectEditDialog({
     }
   }, [project, open]);
 
-  if (!formData) return null;
+  // sync across tabs
+  useEffect(() => {
+    const syncTeam = (e: StorageEvent) => {
+      if (e.key === TEAM_STORAGE_KEY && e.newValue) {
+        setTeamMembers(JSON.parse(e.newValue));
+      }
+    };
+    window.addEventListener("storage", syncTeam);
+    return () => window.removeEventListener("storage", syncTeam);
+  }, []);
+
+  // For editing team members
+  const handleAddMember = () => {
+    // basic validation
+    if (!newMember.name || !newMember.email || !newMember.avatar) {
+      toast.error("All fields are required");
+      return;
+    }
+
+    // check for duplicate email
+    const existingEmail = teamMembers.some(member => member.email === newMember.email);
+    if (existingEmail) {
+      toast.error("A team member with this email already exists");
+      return;
+    }
+
+    // updating team member
+    const updatedTeam = [...teamMembers, newMember];
+    setTeamMembers(updatedTeam);
+    localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(updatedTeam));
+    toast.success("Team member added");
+    setNewMember({ name: "", email: "", avatar: "" });
+  };
+
+  if (!formData) return null
 
   const handleSave = async () => {
     setIsSaving(true);
-    
-    // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     try {
-      onSave(formData);
+      onSave(formData); // updates parent state
+
+      // Update localStorage
+      const stored = localStorage.getItem("project-entries");
+      const entries = stored ? JSON.parse(stored) : [];
+      const updatedEntries = entries.map((entry: ProjectEntry) =>
+        entry.id === formData.id ? formData : entry
+      );
+      localStorage.setItem("project-entries", JSON.stringify(updatedEntries));
+
+      localStorage.setItem("project-last-updated", new Date().toISOString());
+
       toast.success("Project updated successfully!", {
         description: `${formData.name} has been updated.`,
       });
@@ -101,11 +181,11 @@ export function ProjectEditDialog({
   const formatBudgetInput = (value: string) => {
     // Remove non-numeric characters except comma and period
     const numericValue = value.replace(/[^0-9.,]/g, '');
-    
+
     // Convert to number and format
     const number = parseFloat(numericValue.replace(/,/g, ''));
     if (isNaN(number)) return '';
-    
+
     return `$${number.toLocaleString()}`;
   };
 
@@ -138,7 +218,15 @@ export function ProjectEditDialog({
                 id="description"
                 placeholder="Enter project description"
                 className="min-h-[100px]"
-                defaultValue="This project involves comprehensive development and implementation of key features to improve user experience and business outcomes."
+                value={description}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDescription(value);
+                  localStorage.setItem("project-description", value); // Save to localStorage
+                }}
+                onBlur={(e) => {
+                  localStorage.setItem("project-description", e.target.value);
+                }}                
               />
             </div>
           </div>
@@ -195,8 +283,13 @@ export function ProjectEditDialog({
           </div>
 
           {/* Assignee */}
-          <div>
+          {/* <div>
             <Label htmlFor="assignee">Assigned To</Label>
+            <Input
+              placeholder="Name"
+              value={newMember.name}
+              onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+            />
             <Select
               value={formData.assignee.email}
               onValueChange={(value) => {
@@ -213,18 +306,119 @@ export function ProjectEditDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {teamMembers.map((member) => (
-                  <SelectItem key={member.email} value={member.email}>
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">
-                        {member.avatar}
-                      </div>
-                      <span>{member.name}</span>
-                    </div>
-                  </SelectItem>
+                {teamMembers.map((member, index) => (
+                  <div key={member.email} className="flex items-center gap-4">
+                    {editingIndex === index ? (
+                      <>
+                        <Input
+                          value={member.name}
+                          onChange={(e) => {
+                            const updated = [...teamMembers];
+                            updated[index].name = e.target.value;
+                            setTeamMembers(updated);
+                          }}
+                        />
+                        <Input
+                          value={member.email}
+                          onChange={(e) => {
+                            const updated = [...teamMembers];
+                            updated[index].email = e.target.value;
+                            setTeamMembers(updated);
+                          }}
+                        />
+                        <Input
+                          value={member.avatar}
+                          onChange={(e) => {
+                            const updated = [...teamMembers];
+                            updated[index].avatar = e.target.value;
+                            setTeamMembers(updated);
+                          }}
+                        />
+                        <Button
+                          onClick={() => {
+                            localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(teamMembers));
+                            toast.success("Member updated");
+                            setEditingIndex(null);
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <Button variant="outline" onClick={() => setEditingIndex(null)}>
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-sm">{member.name}</div>
+                        <div className="text-sm">{member.email}</div>
+                        <div className="text-sm">{member.avatar}</div>
+                        <Button variant="ghost" onClick={() => setEditingIndex(index)}>Edit</Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => {
+                            const updated = teamMembers.filter((_, i) => i !== index);
+                            setTeamMembers(updated);
+                            localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(updated));
+                            toast.success("Member deleted");
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 ))}
               </SelectContent>
             </Select>
+          </div> */}
+
+          <div className="mt-4 space-y-2">
+            <Label>Add New Assignee</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <Input
+                placeholder="Name"
+                value={newMember.name}
+                onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+              />
+              <Input
+                placeholder="Email"
+                value={newMember.email}
+                onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+              />
+              <Input
+                placeholder="Initials"
+                value={newMember.avatar}
+                onChange={(e) => setNewMember({ ...newMember, avatar: e.target.value })}
+              />
+            </div>
+            <Button
+              className="mt-2"
+              onClick={() => {
+                if (!newMember.name || !newMember.email || !newMember.avatar) {
+                  toast.error("All fields are required");
+                  return;
+                }
+
+                const duplicate = teamMembers.some(m => m.email === newMember.email);
+                if (duplicate) {
+                  toast.error("Email already exists");
+                  return;
+                }
+
+                const updatedTeam = [...teamMembers, newMember];
+                setTeamMembers(updatedTeam);
+                localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(updatedTeam));
+                toast.success("New assignee added");
+                setNewMember({ name: "", email: "", avatar: "" });
+
+                setFormData({
+                  ...formData,
+                  assignee: newMember
+                });
+              }}
+            >
+              Add Assignee
+            </Button>
           </div>
 
           {/* Budget and Deadline */}
@@ -234,9 +428,9 @@ export function ProjectEditDialog({
               <Input
                 id="budget"
                 value={formData.budget}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  budget: formatBudgetInput(e.target.value) 
+                onChange={(e) => setFormData({
+                  ...formData,
+                  budget: formatBudgetInput(e.target.value)
                 })}
                 placeholder="$0"
               />
@@ -255,17 +449,17 @@ export function ProjectEditDialog({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-          <Button 
-            variant="outline" 
-            onClick={handleCancel} 
+          <Button
+            variant="outline"
+            onClick={handleCancel}
             disabled={isSaving}
             className="w-full sm:w-auto"
           >
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={isSaving}
             className="w-full sm:w-auto"
           >

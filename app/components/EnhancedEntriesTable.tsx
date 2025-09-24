@@ -1,5 +1,5 @@
 "use client"
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/card";
 import { Badge } from "../../component/ui/badge";
 import { Button } from "../../component/ui/button";
@@ -22,12 +22,12 @@ import {
 import { ScrollArea } from "../../component/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "../../component/ui/avatar";
 import { Progress } from "../../component/ui/progress";
-import { 
-  MoreHorizontal, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  ArrowUpDown, 
+import {
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  ArrowUpDown,
   Search,
   Filter,
   RefreshCw,
@@ -55,6 +55,7 @@ import {
 import { ProjectDetailsDialog } from "./ProjectDetailsDialog";
 import { ProjectEditDialog } from "./ProjectEditDialog";
 import { toast } from "sonner";
+import { Project } from "../data/types";
 
 const initialEntries = [
   {
@@ -164,42 +165,55 @@ const getPriorityColor = (priority: string) => {
 };
 
 interface EnhancedEntriesTableProps {
-  entries: typeof initialEntries;
+  entries: Project[];
   onRefresh: () => void;
-  onProjectUpdate: (updatedProject: typeof initialEntries[0]) => void;
+  onProjectUpdate: (updatedProject: Project) => void;
 }
 
-export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: EnhancedEntriesTableProps) {
+export function EnhancedEntriesTable({ onRefresh, onProjectUpdate }: EnhancedEntriesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  
+
   // Dialog states
   const [selectedProject, setSelectedProject] = useState<typeof entries[0] | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [entries, setEntries] = useState(initialEntries);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<typeof entries[0] | null>(null);
 
+  useEffect(() => {
+    localStorage.setItem("project-entries", JSON.stringify(entries));
+  }, [entries]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("project-entries");
+    if (stored) {
+      setEntries(JSON.parse(stored));
+    }
+  }, []);
+
+
   const filteredAndSortedEntries = useMemo(() => {
     const filtered = entries.filter((entry) => {
-      const matchesSearch = 
+      const matchesSearch =
         entry.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         entry.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         entry.assignee.name.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesStatus = statusFilter === "all" || entry.status === statusFilter;
       const matchesPriority = priorityFilter === "all" || entry.priority === priorityFilter;
-      
+
       return matchesSearch && matchesStatus && matchesPriority;
     });
 
     // Sort the filtered results
     filtered.sort((a, b) => {
       let aValue, bValue;
-      
+
       switch (sortKey) {
         case "name":
           aValue = a.name.toLowerCase();
@@ -230,7 +244,7 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
           aValue = a.name;
           bValue = b.name;
       }
-      
+
       if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
       if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
       return 0;
@@ -265,18 +279,31 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
 
   const confirmDelete = () => {
     if (projectToDelete) {
-      // Here you would typically call an API to delete the project
+      setEntries((prevEntries) =>
+        prevEntries.filter((entry) => entry.id !== projectToDelete.id)
+      );
+
       toast.success("Project deleted", {
         description: `${projectToDelete.name} has been deleted successfully.`,
       });
+
       setDeleteDialogOpen(false);
       setProjectToDelete(null);
-      onRefresh(); // Refresh the data
     }
   };
 
-  const handleSaveProject = (updatedProject: typeof entries[0]) => {
-    onProjectUpdate(updatedProject);
+  // const handleSaveProject = (updatedProject: typeof entries[0]) => {
+  //   onProjectUpdate(updatedProject);
+  // };
+
+  const handleSaveProject = (updatedProject: Project) => {
+    setEntries((prev) =>
+      prev.map((entry) => (entry.id === updatedProject.id ? updatedProject : entry))
+    );
+    toast.success("Project updated", {
+      description: `${updatedProject.name} has been updated.`,
+    });
+    setEditDialogOpen(false);
   };
 
   const SortableHeader = ({ sortKey: key, children }: { sortKey: SortKey, children: React.ReactNode }) => (
@@ -306,7 +333,7 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
             Refresh
           </Button>
         </div>
-        
+
         {/* Filters */}
         <div className="flex flex-col gap-4 mt-4">
           <div className="relative">
@@ -318,7 +345,7 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
               className="pl-10"
             />
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-40">
@@ -332,7 +359,7 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
                 <SelectItem value="Pending">Pending</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
               <SelectTrigger className="w-full sm:w-40">
                 <Filter className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -352,94 +379,54 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
         <div className="text-sm text-muted-foreground mb-4">
           Showing {filteredAndSortedEntries.length} of {entries.length} projects
         </div>
-        
+
         {/* Desktop Table View */}
         <div className="hidden lg:block">
           <ScrollArea className="h-[600px] w-full">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <SortableHeader sortKey="name">Project</SortableHeader>
+                  <SortableHeader sortKey="name">Name</SortableHeader>
                   <SortableHeader sortKey="status">Status</SortableHeader>
                   <SortableHeader sortKey="priority">Priority</SortableHeader>
-                  <TableHead>Assignee</TableHead>
                   <SortableHeader sortKey="progress">Progress</SortableHeader>
                   <SortableHeader sortKey="deadline">Deadline</SortableHeader>
                   <SortableHeader sortKey="budget">Budget</SortableHeader>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredAndSortedEntries.map((entry) => (
                   <TableRow key={entry.id}>
+                    <TableCell>{entry.name}</TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{entry.name}</div>
-                        <div className="text-sm text-muted-foreground">{entry.id}</div>
-                      </div>
+                      <Badge className={getStatusColor(entry.status)}>{entry.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={getStatusColor(entry.status)}>
-                        {entry.status}
-                      </Badge>
+                      <Badge className={getPriorityColor(entry.priority)}>{entry.priority}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={getPriorityColor(entry.priority)}>
-                        {entry.priority}
-                      </Badge>
+                      <Progress value={entry.progress} />
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={`/avatar-${entry.assignee.avatar.toLowerCase()}.jpg`} />
-                          <AvatarFallback>{entry.assignee.avatar}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium text-sm">{entry.assignee.name}</div>
-                          <div className="text-xs text-muted-foreground">{entry.assignee.email}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-secondary rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${entry.progress}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{entry.progress}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{entry.deadline}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{entry.budget}</div>
-                    </TableCell>
+                    <TableCell>{entry.deadline}</TableCell>
+                    <TableCell>{entry.budget}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="icon">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => handleViewDetails(entry)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View details
+                            <Eye className="mr-2 h-4 w-4" /> View
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditProject(entry)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit project
+                            <Edit className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600 focus:text-red-600"
-                            onClick={() => handleDeleteProject(entry)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete project
+                          <DropdownMenuItem onClick={() => handleDeleteProject(entry)}>
+                            <Trash2 className="mr-2 h-4 w-4 text-red-600" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -479,7 +466,7 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
                           Edit project
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-red-600 focus:text-red-600"
                           onClick={() => handleDeleteProject(entry)}
                         >
@@ -546,7 +533,7 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
             </Card>
           ))}
         </div>
-        
+
         {filteredAndSortedEntries.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             No projects found matching your criteria.
@@ -575,13 +562,13 @@ export function EnhancedEntriesTable({ entries, onRefresh, onProjectUpdate }: En
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the project 
+              This action cannot be undone. This will permanently delete the project
               &quot;{projectToDelete?.name}&quot; and remove all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >

@@ -10,15 +10,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../component/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/card";
 import { Progress } from "../../component/ui/progress";
 import { Separator } from "../../component/ui/separator";
-import { 
-  Calendar, 
-  DollarSign, 
-  User, 
-  Clock, 
+import {
+  Calendar,
+  DollarSign,
+  User,
+  Clock,
   Flag,
   Target,
   TrendingUp
 } from "lucide-react";
+import { Button } from "@/component/ui/button";
+import { Textarea } from "@/component/ui/textarea";
+import { useEffect, useState } from "react";
 
 interface ProjectEntry {
   id: string;
@@ -35,6 +38,13 @@ interface ProjectEntry {
   budget: string;
   createdAt: string;
 }
+
+type Activity = {
+  projectId: string;
+  user: string;
+  action: string;
+  timestamp: string;
+};
 
 interface ProjectDetailsDialogProps {
   project: ProjectEntry | null;
@@ -68,12 +78,25 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-export function ProjectDetailsDialog({ 
-  project, 
-  open, 
-  onOpenChange 
+export function ProjectDetailsDialog({
+  project,
+  open,
+  onOpenChange
 }: ProjectDetailsDialogProps) {
   if (!project) return null;
+
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [activityLog, setActivityLog] = useState<Activity[]>([]);
+  const [formData, setFormData] = useState<ProjectEntry | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("project-activity");
+    if (stored && formData?.id) {
+      const all = JSON.parse(stored);
+      const filtered = all.filter((a: Activity) => a.projectId === formData.id);
+      setActivityLog(filtered.reverse());
+    }
+  }, [FormData?.id]);
 
   const daysUntilDeadline = Math.ceil(
     (new Date(project.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
@@ -83,9 +106,36 @@ export function ProjectDetailsDialog({
     (new Date().getTime() - new Date(project.createdAt).getTime()) / (1000 * 60 * 60 * 24)
   );
 
+  const logActivity = (action: string) => {
+    const stored = localStorage.getItem("project-activity");
+    const activities: Activity[] = stored ? JSON.parse(stored) : [];
+    activities.push({
+      projectId: formData.id,
+      user: "Jack", // or current user
+      action,
+      timestamp: new Date().toISOString(),
+    });
+    localStorage.setItem("project-activity", JSON.stringify(activities));
+  };
+
+  useEffect(() => {
+    const stored = localStorage.getItem("project-activity");
+    if (stored && formData?.id) {
+      const all = JSON.parse(stored);
+      const filtered = all.filter((a: Activity) => a.projectId === formData.id);
+      setActivityLog(filtered.reverse());
+    }
+  }, [formData?.id]);
+
+  useEffect(() => {
+    if (project && open) {
+      setFormData({ ...project });
+    }
+  }, [project, open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Target className="h-5 w-5" />
@@ -177,6 +227,11 @@ export function ProjectDetailsDialog({
                     <p className="text-sm text-muted-foreground">{project.assignee.email}</p>
                   </div>
                 </div>
+                <div className="mt-4">
+                  <Button variant="ghost" onClick={() => setEditingAssignee(project.id)}>
+                    Change Assignee
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -192,7 +247,7 @@ export function ProjectDetailsDialog({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Created</span>
                   <span className="text-sm font-medium">
-                    {new Date(project.createdAt).toLocaleDateString()} 
+                    {new Date(project.createdAt).toLocaleDateString()}
                     <span className="text-muted-foreground ml-1">
                       ({daysSinceCreated} days ago)
                     </span>
@@ -207,10 +262,9 @@ export function ProjectDetailsDialog({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Priority</span>
                   <div className="flex items-center gap-2">
-                    <Flag className={`h-3 w-3 ${
-                      project.priority === 'High' ? 'text-red-500' :
+                    <Flag className={`h-3 w-3 ${project.priority === 'High' ? 'text-red-500' :
                       project.priority === 'Medium' ? 'text-orange-500' : 'text-green-500'
-                    }`} />
+                      }`} />
                     <span className="text-sm font-medium">{project.priority}</span>
                   </div>
                 </div>
@@ -224,12 +278,41 @@ export function ProjectDetailsDialog({
               <CardTitle>Project Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                This project involves comprehensive development and implementation of key features 
-                to improve user experience and business outcomes. The project scope includes 
-                research, design, development, testing, and deployment phases with regular 
-                milestone reviews and stakeholder updates.
-              </p>
+              {editingDescription ? (
+                <>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    className="min-h-[120px]"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      onClick={() => {
+                        setEditingDescription(false);
+                        updateProject(formData); // sync with state
+                        syncToLocalStorage(formData); // sync with localStorage
+                        logActivity("Description updated");
+                      }}
+                    >
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditingDescription(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {formData && (
+                    <p>{formData.description}</p>
+                  )}
+                  <Button variant="ghost" onClick={() => setEditingDescription(true)}>
+                    Edit Description
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -240,27 +323,21 @@ export function ProjectDetailsDialog({
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="h-2 w-2 rounded-full bg-blue-500 mt-2"></div>
-                  <div>
-                    <p className="text-sm">Progress updated to {project.progress}%</p>
-                    <p className="text-xs text-muted-foreground">2 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="h-2 w-2 rounded-full bg-green-500 mt-2"></div>
-                  <div>
-                    <p className="text-sm">Task completed: Initial wireframes</p>
-                    <p className="text-xs text-muted-foreground">1 day ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="h-2 w-2 rounded-full bg-orange-500 mt-2"></div>
-                  <div>
-                    <p className="text-sm">Meeting scheduled with stakeholders</p>
-                    <p className="text-xs text-muted-foreground">3 days ago</p>
-                  </div>
-                </div>
+                {activityLog.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No recent activity</p>
+                ) : (
+                  activityLog.map((entry, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="h-2 w-2 rounded-full bg-blue-500 mt-2"></div>
+                      <div>
+                        <p className="text-sm">{entry.action}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../component/ui/car
 import { Badge } from "../../component/ui/badge";
 import { TrendingUp, Users, Target, Award } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
+import { useProjects } from "../context/projectContext";
+import { useMemo } from "react";
 
 const monthlyData = [
   { month: "Jan", value: 400, projects: 12 },
@@ -21,12 +23,56 @@ const pieData = [
 ];
 
 export function HeroPanel() {
+  const { projects = [] } = useProjects() ?? {};
+
+  const totalProjects = projects.length;
+
+  const completed = projects.filter(p => p.status === "Completed").length;
+  const inProgress = projects.filter(p => p.status === "In Progress").length;
+  const pending = projects.filter(p => p.status === "Pending").length;
+
+  const completionRate = totalProjects
+    ? Math.round((completed / totalProjects) * 100)
+    : 0;
+
+  const revenue = projects.reduce((sum, p) => {
+    const num = parseFloat(p.budget.replace(/[^0-9.]/g, ""));
+    return sum + (isNaN(num) ? 0 : num);
+  }, 0);
+
+  const monthlyData = useMemo(() => {
+    const map = new Map<string, { month: string; value: number; projects: number }>();
+
+    projects.forEach(p => {
+      const date = new Date(p.createdAt);
+      const month = date.toLocaleString("default", { month: "short" });
+      const key = `${date.getFullYear()}-${month}`;
+
+      if (!map.has(key)) {
+        map.set(key, { month, value: 0, projects: 0 });
+      }
+
+      const entry = map.get(key)!;
+      const budget = parseFloat(p.budget.replace(/[^0-9.]/g, ""));
+      entry.value += isNaN(budget) ? 0 : budget;
+      entry.projects += 1;
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month));
+  }, [projects]);
+
+  const pieData = [
+    { name: "Completed", value: completed, color: "hsl(var(--chart-1))" },
+    { name: "In Progress", value: inProgress, color: "hsl(var(--chart-2))" },
+    { name: "Pending", value: pending, color: "hsl(var(--chart-3))" },
+  ];
+
   return (
     <div className="grid gap-6">
       {/* Welcome Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Welcome back, John!</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold">Welcome back, Jack!</h1>
           <p className="text-muted-foreground mt-2 text-sm sm:text-base">
             Here&apos;s what&apos;s happening with your projects today.
           </p>
@@ -40,54 +86,45 @@ export function HeroPanel() {
       {/* Achievement Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+          <CardHeader>
+            <CardTitle>Total Projects</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">156</div>
+            <div className="text-2xl font-bold">{totalProjects}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12%</span> from last month
+              {/* Optional: compare to last month */}
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2,847</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+5.2%</span> from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+          <CardHeader>
+            <CardTitle>Active Users</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+18.7%</span> from last month
-            </p>
+            {/* <div className="text-2xl font-bold">${activeUsers}</div> */}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+          <CardHeader>
+            <CardTitle>Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${revenue.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Completion Rate</CardTitle>
             <Award className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">94.2%</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+2.1%</span> from last month
-            </p>
+            <div className="text-2xl font-bold">{completionRate}%</div>
           </CardContent>
         </Card>
       </div>
@@ -102,12 +139,12 @@ export function HeroPanel() {
             <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
               <AreaChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="month" 
+                <XAxis
+                  dataKey="month"
                   fontSize={12}
                   tickMargin={8}
                 />
-                <YAxis 
+                <YAxis
                   fontSize={12}
                   tickMargin={8}
                 />
